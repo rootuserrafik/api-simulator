@@ -20,11 +20,11 @@ API Request & Response Tester is a web-based tool designed to facilitate testing
 
 1. **Clone the Repository**:
     ```bash
-    git clone https://github.com/yourusername/api-request-response-tester.git
+    git clone https://github.com/rootuserrafik/api-simulator.git
     ```
 2. **Navigate to the Project Directory**:
     ```bash
-    cd api-request-response-tester
+    cd api-simulator
     ```
 3. **Open the `index.html` File**:
     Open `index.html` in your web browser to start using the application.
