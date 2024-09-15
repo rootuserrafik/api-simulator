@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Request Tester</title>
+    <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>API Request Tester</h1>
+
+        <!-- Request Section -->
+        <div class="request-area">
+            <div class="header-section">
+                <div class="http-method">
+                    <label for="method">Select HTTP Method:</label>
+                    <select name="method" id="method">
+                        <option value="GET" selected>GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                <div class="api-endpoint">
+                    <label for="endpoint">Select API Endpoint:</label>
+                    <select name="endpoint" id="endpoint">
+                        <option value="posts" selected>Posts</option>
+                        <option value="comments">Comments</option>
+                        <option value="users">Users</option>
+                        <option value="todos">Todos</option>
+                        <option value="albums">Albums</option>
+                    </select>
+                </div>
+				<div class="request-body">
+					<label for="request_id">Req. ID:</label>
+					<input type="text" id="request_id" name="request_id" placeholder="e.g., 1">
+				</div>
+            </div>
+
+			<!-- Request Body Textarea with ID Field -->
+			<div class="request-body">
+				<label for="request_body">Request Body (JSON):</label>
+				<textarea id="request_body" name="request_body" rows="5" placeholder='{"title": "foo", "body": "bar", "userId": 1}'></textarea>
+			</div>
+
+
+            <!-- Send Request Button -->
+            <button class="send-request-btn" type="button" onclick="sendRequest()">Send Request</button>
+        </div>
+
+        <!-- Tabs and API Response Section -->
+        <div class="response-area">
+            <div class="tab-container">
+                <div class="tabs">
+                    <!-- Tabs will be dynamically generated here -->
+                </div>
+            </div>
+            <div class="response-list">
+                <!-- API responses will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer with Developer Credit -->
+    <footer class="footer">
+        <p>Developed by <a href="https://rootuserrafik.github.io/" target="_blank">Rafikul Islam</a></p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+				// Initialize with 'All' tab or last active tab
+				const lastTab = localStorage.getItem('lastActiveTab') || 'All';
+				showResponsesForTab(lastTab);
+			});
+
+			function sendRequest() {
+				var method = document.getElementById('method').value;
+				var endpoint = document.getElementById('endpoint').value;
+				var requestBody = document.getElementById('request_body').value;
+				var requestId = document.getElementById('request_id').value; // Get the request ID if provided
+				var baseUrl = 'https://jsonplaceholder.typicode.com/';
+				var apiUrl = baseUrl + endpoint;
+				
+				if (requestId) {
+					apiUrl += `/${requestId}`; // Append ID to URL if provided
+				}
+
+				var xhr = new XMLHttpRequest();
+
+				xhr.open(method, apiUrl, true);
+				xhr.setRequestHeader('Content-Type', 'application/json');
+
+				xhr.onreadystatechange = function() {
+					if (xhr.readyState === XMLHttpRequest.DONE) {
+						var responseContainer = document.querySelector('.response-list');
+						var tabContainer = document.querySelector('.tabs');
+						var tabId = endpoint; // Use endpoint name as tab ID
+
+						if (xhr.status === 200 || xhr.status === 201) {
+							var responseText = xhr.responseText;
+							var responseId = Date.now(); // Generate a unique ID for each response
+
+							// Create a new tab if it doesn't exist
+							if (!document.querySelector(`.tab[data-id="${tabId}"]`)) {
+								var tab = document.createElement('button');
+								tab.className = 'tab';
+								tab.dataset.id = tabId;
+								tab.textContent = capitalizeFirstLetter(tabId);
+								tab.onclick = function() {
+									showResponsesForTab(tabId);
+								};
+								tabContainer.appendChild(tab);
+							}
+
+							// Add new response entry
+							var responseEntry = document.createElement('div');
+							responseEntry.className = 'response-entry';
+							responseEntry.innerHTML = `
+								<div class="response-header">
+									<div>[${method}]: ${endpoint}${requestId ? '/' + requestId : ''}</div>
+									<div>${new Date().toLocaleString()}</div>
+									<button class="response-toggle" onclick="toggleEntry('${responseId}')">Expand</button>
+									<button class="response-delete" onclick="deleteEntry('${responseId}')">Delete</button>
+								</div>
+								<div class="response-body" id="response-${responseId}">
+									<pre>${responseText}</pre>
+								</div>
+							`;
+							responseContainer.appendChild(responseEntry);
+
+							// Update local storage with the new tab
+							localStorage.setItem('lastActiveTab', tabId);
+
+							// Automatically switch to the latest tab
+							showResponsesForTab(tabId);
+						} else {
+							var responseEntry = document.createElement('div');
+							responseEntry.className = 'response-entry';
+							responseEntry.innerHTML = `
+								<div class="response-header">
+									<div>[${method}]: ${endpoint}${requestId ? '/' + requestId : ''}</div>
+									<div>${new Date().toLocaleString()}</div>
+									<button class="response-toggle" onclick="toggleEntry('${Date.now()}')">Expand</button>
+									<button class="response-delete" onclick="deleteEntry('${Date.now()}')">Delete</button>
+								</div>
+								<div class="response-body" id="response-${Date.now()}">
+									<pre>Error: ${xhr.status}</pre>
+								</div>
+							`;
+							responseContainer.appendChild(responseEntry);
+
+							// Update local storage with the new tab
+							localStorage.setItem('lastActiveTab', endpoint);
+
+							// Automatically switch to the latest tab
+							showResponsesForTab(endpoint);
+						}
+					}
+				};
+
+				xhr.send(requestBody ? requestBody : null);
+			}
+
+
+			function showResponsesForTab(tabId) {
+				document.querySelectorAll('.response-entry').forEach(function(entry) {
+					if (tabId === 'All' || entry.querySelector('.response-header').textContent.includes(tabId)) {
+						entry.style.display = 'block';
+					} else {
+						entry.style.display = 'none';
+					}
+				});
+
+				document.querySelectorAll('.tab').forEach(function(tab) {
+					tab.classList.toggle('active', tab.dataset.id === tabId);
+				});
+
+				// Save the active tab to local storage
+				localStorage.setItem('lastActiveTab', tabId);
+			}
+
+			function toggleEntry(responseId) {
+				var responseBody = document.getElementById(`response-${responseId}`);
+				var toggleButton = document.querySelector(`#response-${responseId} ~ .response-header .response-toggle`);
+				
+				if (responseBody) {
+					if (responseBody.classList.contains('collapsed')) {
+						responseBody.classList.remove('collapsed');
+						toggleButton.textContent = 'Compress';
+					} else {
+						responseBody.classList.add('collapsed');
+						toggleButton.textContent = 'Expand';
+					}
+				} else {
+					console.warn('No response body found for toggling.');
+				}
+			}
+
+			function deleteEntry(responseId) {
+				var entry = document.querySelector(`#response-${responseId}`).closest('.response-entry');
+				if (entry) {
+					entry.remove();
+				}
+			}
+
+			function capitalizeFirstLetter(string) {
+				return string.charAt(0).toUpperCase() + string.slice(1);
+			}
+
+    </script>
+</body>
+</html>
